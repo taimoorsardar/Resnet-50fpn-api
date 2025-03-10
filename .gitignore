@@ -1,0 +1,8 @@
+__pycache__/ 
+*.pyc 
+venv/ 
+.ipynb_checkpoints
+output.png
+output2.png
+execute_model.ipynb
+
