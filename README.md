@@ -57,10 +57,10 @@ This repository contains a REST API built with FastAPI for image classification 
 1. **Clone the repository:**
 
    ```bash
-   git clone https://your.repo.url.git
-   cd your-repo-folder
+   git clone https://github.com/taimoorsardar/Resnet-50fpn-api.git
+   cd Resnet-50fpn-api
    ```
-
+   
 2. **Create a virtual environment (optional but recommended):**
 
    ```bash
