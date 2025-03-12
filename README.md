@@ -62,18 +62,22 @@ This repository contains a REST API built with FastAPI for image classification 
 1. **Clone the repository:**
 
    ```bash
-   git clone https://your.repo.url.git
-   cd your-repo-folder
+   git clone https://github.com/taimoorsardar/Resnet-50fpn-api.git
+   cd Resnet_50fpn_api
    ```
-
-2. **Create a virtual environment (optional but recommended):**
+2. **Switch to a branch**
+      ```bash
+   git branch
+   git checkout <branch-name>
+   ```
+3. **Create a virtual environment (optional but recommended):**
 
    ```bash
    python -m venv venv
    source venv/bin/activate  # On Windows: venv\Scripts\activate
    ```
 
-3. **Install the dependencies:**
+4. **Install the dependencies:**
 
    ```bash
    pip install -r requirements.txt
