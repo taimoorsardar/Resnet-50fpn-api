@@ -14,18 +14,31 @@ This repository contains a REST API built with FastAPI for image classification 
 ```
 .
 ├── architecture
+
 │   ├── resnet50.py
+
 │   ├── resnet50_fpn.py
+
 │   └── torchutils.py
+
 ├── utils
+
 │   ├── image_wrapper.py
+
 │   ├── image_processor.py
+
 │   └── imutils.py
+
 ├── weights
+
 │   └── checkpoint.pth
+
 ├── main.py
+
 ├── README.md
+
 └── requirements.txt
+
 ```
 
 - **architecture/**  
