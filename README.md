@@ -1,13 +1,6 @@
-Below are two files you can add to your repository: a **README.md** for documentation and a **requirements.txt** listing the dependencies.
+# Model Inference API with CAM Generation & Supabase Storage
 
----
-
-**README.md**
-
-```markdown
-# Model Inference API with CAM Generation
-
-This repository contains a REST API built with FastAPI for image classification and Class Activation Map (CAM) generation using a custom neural network model. The API loads the model, processes an image (with scaling, CAM overlay, and classification), and returns the results as a JSON response including an overlay image (encoded in Base64).
+This repository contains a REST API built with FastAPI for image classification and Class Activation Map (CAM) generation using a custom neural network model. The API loads the model, processes an image (with scaling, CAM overlay, and classification), and returns the results as a JSON response including an overlay image (stored in Supabase and returned as a public URL).
 
 ## Project Structure
 
@@ -20,7 +13,8 @@ This repository contains a REST API built with FastAPI for image classification 
 ├── utils
 │   ├── image_wrapper.py
 │   ├── image_processor.py
-│   └── imutils.py
+│   ├── imutils.py
+│   ├── supabase_utils.py  # Handles image upload to Supabase
 ├── weights
 │   └── checkpoint.pth
 ├── main.py
@@ -36,12 +30,13 @@ This repository contains a REST API built with FastAPI for image classification 
   - `imutils.py` for image pre-processing.
   - `image_wrapper.py` for wrapping image data and computed CAMs.
   - `image_processor.py` for loading images, executing the model, and computing CAMs.
+  - `supabase_utils.py` for uploading images to Supabase and retrieving public URLs.
 
 - **weights/**  
   Contains the model checkpoint file (saved weights).
 
 - **main.py**  
-  Contains the FastAPI application with endpoints to handle image uploads, run inference, and return results (classification scores and Base64-encoded overlay image).
+  Contains the FastAPI application with endpoints to handle image uploads, run inference, store the processed image in Supabase, and return results.
 
 ## Features
 
@@ -52,10 +47,10 @@ This repository contains a REST API built with FastAPI for image classification 
   Compute Class Activation Maps (CAMs) and overlay them on the original image.
 
 - **REST API:**  
-  Endpoints created with FastAPI that accept image uploads, process the image using your custom model, and return a JSON response.
+  Endpoints created with FastAPI that accept image uploads, process the image using your custom model, store the processed image in Supabase, and return a JSON response.
 
-- **Base64 Image Encoding:**  
-  The API returns the CAM overlay as a Base64-encoded PNG image. A helper function is provided to decode and display the image when needed.
+- **Supabase Storage:**  
+  The processed image is uploaded to Supabase and a public URL is returned in the response.
 
 ## Installation
 
@@ -92,10 +87,10 @@ The API will be available at [http://localhost:8000](http://localhost:8000) and 
 ## API Endpoints
 
 - **POST `/predict/`**  
-  - **Description:** Accepts an image file, runs classification and CAM generation, and returns:
+  - **Description:** Accepts an image file, runs classification and CAM generation, uploads the processed image to Supabase, and returns:
     - `classification_scores`: List of classification scores.
     - `predicted_categories`: Dictionary of predicted categories (with scores as native floats).
-    - `overlay_image`: A Base64-encoded PNG image showing the CAM overlay on the original image.
+    - `image_url`: A public URL of the processed image stored in Supabase.
   
   - **Example Request (using curl):**
 
@@ -105,36 +100,28 @@ The API will be available at [http://localhost:8000](http://localhost:8000) and 
       -F 'file=@path_to_your_image.png'
     ```
 
-## Decoding the Overlay Image
+## Using Supabase for Image Storage
 
-A helper function is provided to decode the Base64 overlay image. For example:
+The API now integrates with Supabase for storing processed images. The `main.py` file handles:
 
-```python
-import base64
-from io import BytesIO
-from PIL import Image
-import matplotlib.pyplot as plt
+- Uploading the processed image to the `images` bucket.
+- Retrieving the public URL of the uploaded image.
 
-def decode_image(base64_string: str) -> Image.Image:
-    if base64_string.startswith("data:image"):
-        _, base64_data = base64_string.split(",", 1)
-    else:
-        base64_data = base64_string
-    image_data = base64.b64decode(base64_data)
-    image = Image.open(BytesIO(image_data))
-    return image
+To set up Supabase, ensure you have:
 
-# Example usage:
-overlay_image_b64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..."
-decoded_img = decode_image(overlay_image_b64)
-decoded_img.show()
-```
+1. A Supabase account ([https://supabase.io](https://supabase.io)).
+2. A project with a `storage` bucket named `images`.
+3. A `constants.py` file containing your Supabase credentials:
+
+   ```ini
+   SUPABASE_URL="your_supabase_url"
+   SUPABASE_KEY="your_supabase_key"
+   ```
 
 ## Notes
 
 - **Extensibility:**  
-  You can extend the API by adding additional endpoints or functionalities (e.g., handling intermediate CAM layers, saving results to disk, etc.).
-
+  You can extend the API by adding additional endpoints or functionalities (e.g., handling intermediate CAM layers, saving metadata to a database, etc.).
 
 ---
 
@@ -143,5 +130,3 @@ decoded_img.show()
 1. Place the above **README.md** and **requirements.txt** files in the root of your project.
 2. Follow the instructions in the README to install dependencies and run the API.
 3. Use the provided endpoints and helper functions in your client code or interactive Python sessions.
-
-These files should help you get started with documentation and setting up your environment. Let me know if you need any further modifications or additional details!

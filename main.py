@@ -1,23 +1,20 @@
-# main.py
-from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi import FastAPI, File, UploadFile, HTTPException, Form
 from fastapi.responses import JSONResponse
 import uvicorn
 import numpy as np
 from PIL import Image
 from io import BytesIO
-import io
 import os
-import base64
+import requests
+from supabase import create_client, Client
 import matplotlib.pyplot as plt
 
-# Import your ImageProcessor from your utils package
 from utils.image_processor import ImageProcessor
 
-# Define the target categories, path to the checkpoint, and model module.
-CATS = ["suspicious_site"]
-STATE_DICT_PATH = os.path.join("weights", "checkpoint.pth")
-# Set the model to the module that contains your model definitions.
-MODEL_MODULE = "architecture.resnet50_fpn"
+from constants import SUPABASE_KEY, SUPABASE_URL, CATS, STATE_DICT_PATH, MODEL_MODULE
+
+# Initialize Supabase client
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # Initialize the image processor instance
 image_processor = ImageProcessor(CATS, STATE_DICT_PATH, model=MODEL_MODULE)
@@ -28,44 +25,61 @@ app = FastAPI(
     version="1.0",
 )
 
-def generate_cam_overlay(original_image: np.ndarray, cam: np.ndarray, alpha: float = 0.6, cmap_name: str = 'jet') -> str:
-    """
-    Generates an overlay image of the CAM on the original image and returns it as a base64 encoded PNG.
-    
-    Parameters:
-        original_image (np.ndarray): Original image as a NumPy array (H, W, 3).
-        cam (np.ndarray): CAM as a 2D NumPy array (values normalized between 0 and 1).
-        alpha (float): Blending factor.
-        cmap_name (str): Name of the matplotlib colormap to use.
-        
-    Returns:
-        str: Base64 encoded PNG image.
-    """
-    # Get the colormap and apply it to the CAM to create a colored heatmap.
-    cmap = plt.get_cmap(cmap_name)
-    cam_color = cmap(cam)  # This returns an (H, W, 4) RGBA array (values in [0,1])
-    cam_color = (cam_color[:, :, :3] * 255).astype('uint8')  # Discard alpha and convert to 8-bit
-    
-    # Convert original image and CAM heatmap to PIL images.
-    orig_img = Image.fromarray(original_image.astype('uint8'))
-    cam_img = Image.fromarray(cam_color)
-    
-    # Resize the CAM heatmap to match the original image (if needed).
-    cam_img = cam_img.resize(orig_img.size, resample=Image.BILINEAR)
-    
-    # Blend the original image with the CAM heatmap.
-    overlay = Image.blend(orig_img, cam_img, alpha)
-    
-    # Save overlay to a BytesIO buffer as PNG.
-    buf = io.BytesIO()
-    overlay.save(buf, format='PNG')
-    buf.seek(0)
-    
-    # Encode the image in Base64.
-    overlay_base64 = base64.b64encode(buf.read()).decode('utf-8')
-    # Optionally, prepend the data URL header:
-    return f"data:image/png;base64,{overlay_base64}"
+def fetch_image_from_url(url: str) -> Image.Image:
+    response = requests.get(url)
+    if response.status_code != 200:
+        raise HTTPException(status_code=400, detail="Failed to fetch image from URL")
+    return Image.open(BytesIO(response.content))
 
+def upload_image_to_supabase(image: Image.Image, image_name: str) -> str:
+    buf = BytesIO()
+    image.save(buf, format="PNG")
+    buf.seek(0)
+    file_bytes = buf.getvalue()
+
+    # Define file options as a dictionary
+    file_options = {"content-type": "image/png"}
+    
+    # Upload the file to the 'images' bucket
+    response = supabase.storage.from_("images").upload(image_name, file_bytes, file_options)
+    
+    # Get the public URL for the uploaded image
+    public_url = supabase.storage.from_("images").get_public_url(image_name)
+    return public_url
+
+def generate_cam_overlay(original_image: np.ndarray, cam: np.ndarray, alpha: float = 0.6, cmap_name: str = 'jet') -> Image.Image:
+    cmap = plt.get_cmap(cmap_name)
+    cam_color = cmap(cam)
+    cam_color = (cam_color[:, :, :3] * 255).astype('uint8')
+    orig_img = Image.fromarray(original_image.astype('uint8'))
+    cam_img = Image.fromarray(cam_color).resize(orig_img.size, resample=Image.BILINEAR)
+    overlay = Image.blend(orig_img, cam_img, alpha)
+    return overlay
+
+@app.post("/process_image/")
+async def process_image(image_url: str = Form(None)):
+    try:
+        if image_url:
+            image = fetch_image_from_url(image_url)
+        else:
+            raise HTTPException(status_code=400, detail="image_url must be provided")
+
+        if image.mode not in ('L', 'RGB'):
+            image = image.convert('RGB')
+        image_np = np.array(image)
+        
+        result_wrapper = image_processor.execute_cams_pred(image_np)
+        predicted_categories = {k: float(v) for k, v in result_wrapper.predicted_categories.items()}
+        scores = result_wrapper.classification_scores
+        best_idx = int(np.argmax(scores))
+        cam_for_best = result_wrapper.global_cams[best_idx]
+        cam_norm = (cam_for_best - np.min(cam_for_best)) / (np.ptp(cam_for_best) + 1e-8)
+        overlay_image = generate_cam_overlay(result_wrapper.image, cam_norm)
+        processed_image_url = upload_image_to_supabase(overlay_image, "processed_image.png")
+        
+        return {"classification_scores": scores.tolist(), "predicted_categories": predicted_categories, "processed_image_url": processed_image_url}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/predict/")
 async def predict(file: UploadFile = File(...)):
@@ -110,5 +124,4 @@ async def predict(file: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
-    # Run the API with uvicorn: python main.py
     uvicorn.run(app, host="0.0.0.0", port=8000)

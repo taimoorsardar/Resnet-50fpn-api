@@ -1,9 +1,12 @@
 fastapi
 uvicorn
-torch
+torch==2.5.1
 torchvision
 numpy
 pillow
 matplotlib
 pytorch-ignite
 scikit-learn
+python-multipart
+requests
+supabase
