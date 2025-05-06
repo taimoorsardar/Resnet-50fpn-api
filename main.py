@@ -108,7 +108,9 @@ async def predict(file: UploadFile = File(...)):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
+app.get("/health")
+async def health():
+    return {"status": "ok"}
 if __name__ == "__main__":
     # Run the API with uvicorn: python main.py
     port = int(os.environ.get["PORT",8080])
