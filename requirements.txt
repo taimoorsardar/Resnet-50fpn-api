@@ -9,3 +9,4 @@ pytorch-ignite
 scikit-learn
 python-multipart
 requests
+gunicorn
