@@ -7,3 +7,5 @@ pillow
 matplotlib
 pytorch-ignite
 scikit-learn
+python-multipart
+requests
