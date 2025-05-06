@@ -469,7 +469,7 @@ class ImageProcessor:
 
         model_class = getattr(import_module(self.__model), class_name)
         model = model_class(self.num_cats, pretrained=False)
-        model.load_state_dict(torch.load(self.state_dict_path,weights_only=True), strict=True)
+        model.load_state_dict(torch.load(self.state_dict_path,weights_only=False), strict=True)
         #model.load_state_dict(torch.load('model.pth', map_location=torch.device('cpu')))
         model.eval()
         return model
