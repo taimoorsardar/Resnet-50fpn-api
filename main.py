@@ -15,7 +15,7 @@ from utils.image_processor import ImageProcessor
 
 # Define the target categories, path to the checkpoint, and model module.
 CATS = ["suspicious_site"]
-STATE_DICT_PATH = "weights\\checkpoint.pth.part0"
+STATE_DICT_PATH = "weights\\checkpoint.pth"
 # Set the model to the module that contains your model definitions.
 MODEL_MODULE = "architecture.resnet50_fpn"
 
@@ -111,4 +111,5 @@ async def predict(file: UploadFile = File(...)):
 
 if __name__ == "__main__":
     # Run the API with uvicorn: python main.py
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    port = int(os.environ.get["PORT",8080])
+    uvicorn.run(app, host="0.0.0.0", port=port)

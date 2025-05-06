@@ -7,3 +7,4 @@ output2.png
 execute_model.ipynb
 weights/checkpoint.pth
 .env
+start.cmd
