@@ -1,6 +1,6 @@
 import numpy as np
 from PIL import Image
-
+import os
 def get_strided_size(orig_size, stride):
     return ((orig_size[0]-1)//stride+1, (orig_size[1]-1)//stride+1)
 
@@ -104,3 +104,25 @@ def resize_image(image, size, order):
     elif order == 0:
         resample = Image.NEAREST
     return np.asarray(Image.fromarray(image).resize(size[::-1], resample))
+
+def merge_checkpoint(parts_prefix="weights/checkpoint.pth.part", output_path="weights/checkpoint.pth"):
+    with open(output_path, 'wb') as output_file:
+        i = 0
+        while True:
+            part_file = f"{parts_prefix}{i}"
+            if not os.path.exists(part_file):
+                break
+            with open(part_file, 'rb') as pf:
+                output_file.write(pf.read())
+            i += 1
+    print(f"Merged {i} parts into {output_path}")
+
+def split_file(file_path, chunk_size_mb=50):
+    chunk_size = chunk_size_mb * 1024 * 1024
+    with open(file_path, 'rb') as f:
+        i = 0
+        while chunk := f.read(chunk_size):
+            with open(f"{file_path}.part{i}", 'wb') as chunk_file:
+                chunk_file.write(chunk)
+            i += 1
+    print(f"File split into {i} parts.")

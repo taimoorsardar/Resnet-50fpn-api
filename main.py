@@ -15,7 +15,7 @@ from utils.image_processor import ImageProcessor
 
 # Define the target categories, path to the checkpoint, and model module.
 CATS = ["suspicious_site"]
-STATE_DICT_PATH = os.path.join("weights", "checkpoint.pth")
+STATE_DICT_PATH = "weights\\checkpoint.pth.part0"
 # Set the model to the module that contains your model definitions.
 MODEL_MODULE = "architecture.resnet50_fpn"
 

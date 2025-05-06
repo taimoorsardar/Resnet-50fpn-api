@@ -9,7 +9,7 @@ from PIL import Image
 
 from utils.image_wrapper import ImageWrapper
 from utils.imutils import (get_strided_up_size, pre_process_image,
-                          process_image_for_cams, rescale_image)
+                          process_image_for_cams, rescale_image, merge_checkpoint)
 
 
 class ImageProcessor:
@@ -469,7 +469,8 @@ class ImageProcessor:
 
         model_class = getattr(import_module(self.__model), class_name)
         model = model_class(self.num_cats, pretrained=False)
-        model.load_state_dict(torch.load(self.state_dict_path,weights_only=False), strict=True)
+        merge_checkpoint()
+        model.load_state_dict(torch.load("weights/checkpoint.pth",weights_only=False), strict=True)
         #model.load_state_dict(torch.load('model.pth', map_location=torch.device('cpu')))
         model.eval()
         return model
